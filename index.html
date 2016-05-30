@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link href="css/style.css" media="screen" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <h1>Gender of Candidates in Australian Federal Election 2016</h1>
+
+
+    <script id="cat-template" type="text/underscore-template">
+      <div class="entry">
+        <h2><%= Name %>!</h2>
+        <h3>age <%= Party %></h3>
+        <div class="body">
+          <%= State %>
+        </div>
+      </div>
+    </script>
+
+
+    <div id="content"></div>
+    <div id="loading">Fetching data... <img src="images/ajax-loader.gif" alt="loading..."/></div>
+
+    <script type="text/javascript" src="lib/jquery.js"></script>
+    <script type="text/javascript" src="lib/underscore.js"></script>
+    <script type="text/javascript" src="lib/backbone.js"></script>
+    <script type="text/javascript" src="lib/backbone.tabletopSync.js"></script>
+    <script type="text/javascript" src="lib/tabletop.js"></script>
+    <script type="text/javascript">
+
+
+    var public_spreadsheet_url = "https://docs.google.com/spreadsheets/d/1JvBRkeXyamjWkKLjhcS720tBmGuT23CL-KZdGCkGKmk/pubhtml";
+    var storage = Tabletop.init( { key: public_spreadsheet_url,
+                                      wait: true } )
+
+      /*
+       Need to specify that you'd like to sync using Backbone.tabletopSync
+       Can specify tabletop attributes, or you can do it on the collection
+      */
+      var Can = Backbone.Model.extend({
+        idAttribute: 'Name',
+        tabletop: {
+          instance: storage,
+          sheet: 'Candidates'
+        },
+        sync: Backbone.tabletopSync
+      })
+
+      /*
+       Need to specify that you'd like to sync using Backbone.tabletopSync
+       Need to specify a tabletop key and sheet
+      */
+      var CanCollection = Backbone.Collection.extend({
+          // Reference to this collection's model.
+          model: Can,
+          tabletop: {
+            instance: storage,
+            sheet: 'Candidates'
+          },
+          sync: Backbone.tabletopSync
+      });
+
+      var CanView = Backbone.View.extend({
+          tagname: 'div',
+          template: _.template($('#cat-template').html()),
+
+          render: function() {
+            $(this.el).html(this.template(this.model.toJSON()));
+            return this;
+          }
+      })
+    </script>
+
+
+    <script type="text/javascript">
+
+
+      $(document).ready( function() {
+        var cans = new CanCollection();
+        cans.fetch({ success: showInfo });
+      });
+      
+      function showInfo(cans) {
+        $("#loading").hide();
+        var henry_view = new CanView({ model: cans.get('Angry Anderson') });
+
+        $("#content").append( henry_view.render().el );
+
+        var bosco_view = new CanView({ model: cans.get('David Smith') });
+
+        $("#content").append( bosco_view.render().el );
+
+        var parties = cans.groupBy(function(model) { return model.get('Party')});
+        console.log(parties);
+
+        var states = cans.groupBy(function(model) { return model.get('State')});
+        console.log(states);
+        
+        
+      }
+    
+      document.write("The published spreadsheet is located at <a target='_new' href='" + public_spreadsheet_url + "'>" + public_spreadsheet_url + "</a>");    
+
+    </script>
+  </body>
+</html>    
