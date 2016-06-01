@@ -2,17 +2,27 @@
 <html>
   <head>
     <link href="css/style.css" media="screen" rel="stylesheet" type="text/css" />
+        <link href="css/bootstrap.min.css" media="screen" rel="stylesheet" type="text/css" />
+
   </head>
   <body>
     <h1>Gender of Candidates in Australian Federal Election 2016</h1>
 
 
     <script id="cat-template" type="text/underscore-template">
-      <div class="entry">
-        <h2><%= Name %>!</h2>
+      <div class="party">
+        <h2><%= Name %></h2>
         <h3>age <%= Party %></h3>
         <div class="body">
-          <%= State %>
+         
+        </div>
+      </div>
+    </script>
+
+
+    <script id="rowview-template" type="text/underscore-template">
+      <div class="row_view">
+        <%= Position =>
         </div>
       </div>
     </script>
@@ -30,74 +40,40 @@
 
 
     var public_spreadsheet_url = "https://docs.google.com/spreadsheets/d/1JvBRkeXyamjWkKLjhcS720tBmGuT23CL-KZdGCkGKmk/pubhtml";
-    var storage = Tabletop.init( { key: public_spreadsheet_url,
-                                      wait: true } )
 
-      /*
-       Need to specify that you'd like to sync using Backbone.tabletopSync
-       Can specify tabletop attributes, or you can do it on the collection
-      */
-      var Can = Backbone.Model.extend({
-        idAttribute: 'Name',
-        tabletop: {
-          instance: storage,
-          sheet: 'Candidates'
-        },
-        sync: Backbone.tabletopSync
-      })
+    $(document).ready( function() {
+      renderSpreadsheetData();
+    });
 
-      /*
-       Need to specify that you'd like to sync using Backbone.tabletopSync
-       Need to specify a tabletop key and sheet
-      */
-      var CanCollection = Backbone.Collection.extend({
-          // Reference to this collection's model.
-          model: Can,
-          tabletop: {
-            instance: storage,
-            sheet: 'Candidates'
-          },
-          sync: Backbone.tabletopSync
-      });
+    function renderSpreadsheetData() {
+       Tabletop.init( { key: public_spreadsheet_url,
+                   callback: draw,
+                   simpleSheet: true } )
+    }
 
-      var CanView = Backbone.View.extend({
-          tagname: 'div',
-          template: _.template($('#cat-template').html()),
-
-          render: function() {
-            $(this.el).html(this.template(this.model.toJSON()));
-            return this;
-          }
-      })
-    </script>
-
-
-    <script type="text/javascript">
-
-
-      $(document).ready( function() {
-        var cans = new CanCollection();
-        cans.fetch({ success: showInfo });
-      });
-      
-      function showInfo(cans) {
-        $("#loading").hide();
-        var henry_view = new CanView({ model: cans.get('Angry Anderson') });
-
-        $("#content").append( henry_view.render().el );
-
-        var bosco_view = new CanView({ model: cans.get('David Smith') });
-
-        $("#content").append( bosco_view.render().el );
-
-        var parties = cans.groupBy(function(model) { return model.get('Party')});
-        console.log(parties);
-
-        var states = cans.groupBy(function(model) { return model.get('State')});
+    function draw(data, tabletop) {
+        // draw chart
+        //drawChart(data);
+        //console.log(data);
+        states = _.groupBy(data,'State');
+        var states = _.groupByMulti(data,['State','Party']);
+        var parties = _.groupByMulti(data,['Party', 'State']);
         console.log(states);
-        
-        
-      }
+        console.log(parties);
+    }
+      
+    //code from http://stackoverflow.com/a/13869056
+    _.groupByMulti = function (obj, values, context) {
+        if (!values.length)
+            return obj;
+        var byFirst = _.groupBy(obj, values[0], context),
+            rest = values.slice(1);
+        for (var prop in byFirst) {
+            byFirst[prop] = _.groupByMulti(byFirst[prop], rest, context);
+        }
+        return byFirst;
+    };  
+    
     
       document.write("The published spreadsheet is located at <a target='_new' href='" + public_spreadsheet_url + "'>" + public_spreadsheet_url + "</a>");    
 
