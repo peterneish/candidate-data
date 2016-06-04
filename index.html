@@ -34,6 +34,7 @@
 
 
     <div id="content"></div>
+    <div id="chart"></div>
     <div id="loading">Crunching data... <img src="images/ajax-loader.gif" alt="loading..."/></div>
 
     <script type="text/javascript" src="lib/jquery.js"></script>
@@ -44,35 +45,56 @@
     <script type="text/javascript">
 
     var public_spreadsheet_url = "https://docs.google.com/spreadsheets/d/1JvBRkeXyamjWkKLjhcS720tBmGuT23CL-KZdGCkGKmk/pubhtml";
-    var data;
+
+    var width = 960,
+        height = 750,
+        cellSize = 25; // cell size
+
+
     $(document).ready( function() {
       d3.csv("data/Candidates_Federal_Election_2016 - Candidates.csv", function(data){
-         
-          
           draw(data);
-      })
+      });
     });
 
-    function renderSpreadsheetData() {
-       Tabletop.init( { key: public_spreadsheet_url,
-                   callback: draw,
-                   simpleSheet: true } )
-    }
 
     function draw(data) {
 
-        var states = _.groupByMulti(data,['State','Party']);
-        var parties = _.groupByMulti(data,['Party', 'State']);
-        console.log(states);
-        console.log(parties);
+        //var states = _.groupByMulti(data,['State','Party']);
+        states = _.groupBy(data,'State');
+        stateSorted = _.sortBy(data, function(s){ return s.State;});
+        parties = _.groupBy(data,'Party');
 
+        var numstates = _.size(states);
+
+
+
+        var svg = d3.select("#chart").selectAll("svg")
+        .enter().append("svg")
+          .attr("width", width)
+          .attr("height", height)
+          .attr("class", "RdYlGn")
+        .append("g")
+
+         var rect = svg.selectAll(".cell")
+             .data(statesSorted)
+             .enter().append("rect")
+             .attr("class", "state")
+             .attr("height", cellSize)
+             .attr("width", cellSize)
+             .text(function(d){ return d.Gender});
+
+
+        d3.select("#content").selectAll("div")
+             .data(states.NSW)
+             .enter().append("div").text(function(d){return d.Gender; });
 
         $("#loading").hide();
     }
 
 
-      
- 
+
+
     
     
       document.write("The published spreadsheet is located at <a target='_new' href='" + public_spreadsheet_url + "'>" + public_spreadsheet_url + "</a>");    
