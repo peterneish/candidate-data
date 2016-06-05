@@ -109,12 +109,27 @@
         var svg = d3.select("#chart")
         .append("svg")
           .attr("width", width)
-          .attr("height", (height * num_states) + (num_states * margin))
+          .attr("height", num_states * 12 * cellSize)
           .attr("class", "RdYlGn")
         .append("g");
 
 
         //console.log(states_sorted);
+/*
+
+*/
+
+        // add an outline around the states
+         var grid = svg.selectAll("rect")
+             .data(state_nums)
+             .enter()
+             .append("rect")
+             .attr("width", function(d){ return num_parties * cellSize;})
+             .attr("height", function(d){ return d.Seats * cellSize;})
+             .attr('y', function(d){ return d.offset * cellSize;})
+             .attr('x',0)
+             .attr('stroke', 'black')
+             .attr('fill', 'white');
 
         // add the squares
         var rect = svg.selectAll("rect")
@@ -130,11 +145,10 @@
               state_settings = _.find(state_nums, function(sn){ return sn.Name == d.State; });
               y_offset = state_settings.offset * cellSize;
 
-              return y_offset + (d.Position * cellSize);
+              return y_offset + ((d.Position - 1) * cellSize);
 
            })
-           .attr('class', function(d){ return d.Gender;})
-
+           .attr('class', function(d){ return d.Gender;});
 
         //  Tooltip Object
         var tooltip = d3.select("body")
