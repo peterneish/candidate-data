@@ -49,11 +49,28 @@
     var public_spreadsheet_url = "https://docs.google.com/spreadsheets/d/1JvBRkeXyamjWkKLjhcS720tBmGuT23CL-KZdGCkGKmk/pubhtml";
 
     var width = 960,
-        height = 250, // of each state
+        height = 200, // of each state
         margin = 30,  // between states
-        cellSize = 25; // cell size
+        cellSize = 30; // cell size
+        
+    var state_nums =  [{'Name': 'ACT', 'Seats': 2}, 
+                      {'Name': 'NSW', 'Seats': 12}, 
+                      {'Name': 'NT', 'Seats': 2},
+                      {'Name': 'QLD', 'Seats': 12}, 
+                      {'Name': 'SA', 'Seats': 12},
+                      {'Name': 'TAS', 'Seats': 12}, 
+                      {'Name': 'VIC', 'Seats': 12}, 
+                      {'Name': 'WA', 'Seats': 12}];
 
-    var state_order_size = ['NSW', 'QLD', 'SA', 'TAS', 'VIC', 'WA', 'ACT', 'NT']; // so we can put the territories last    
+    // so we can position the state box correctly we need to add up the previous seat numbers
+    // (yes, a bit of a hack and mixes up formatting with data - I'm not happy with myself about this)
+    prev = 0;
+    _.each(state_nums, function(s){
+      s['offset'] = prev;
+      prev = s.offset + s.Seats;    
+    }) ;
+
+    //console.log(state_nums);
 
 
     $(document).ready( function() {
@@ -68,6 +85,9 @@
         
         states = _.groupBy(data,'State');
         state_keys = _.keys(states);
+
+
+        //console.log(state_keys);
         states_sorted = _.sortBy(data, function(s){ return [s.State,s.Party].join('|') ;});
         parties_sorted = _.sortBy(data, function(s){ return [s.Party,s.State].join('|') ;});
 
@@ -79,11 +99,13 @@
         _.map(states_sorted, function(s){  s['party_order'] = party_keys.indexOf(s.Party); return s;});
         _.map(states_sorted, function(s){  s['state_order'] = state_keys.indexOf(s.State); return s;});
 
+        // and we put in the y position based on the max for each state
+
 
         var num_states = _.size(states);
         var num_parties = _.size(parties);
 
-
+        // create the main svg
         var svg = d3.select("#chart")
         .append("svg")
           .attr("width", width)
@@ -91,6 +113,10 @@
           .attr("class", "RdYlGn")
         .append("g");
 
+
+        //console.log(states_sorted);
+
+        // add the squares
         var rect = svg.selectAll("rect")
            .data(states_sorted)
            .enter()
@@ -98,7 +124,15 @@
            .attr("width", cellSize)
            .attr("height", cellSize)
            .attr('x', function(d){ return d.party_order * cellSize;})
-           .attr('y', function(d){ return (d.state_order * height) +  (d.Position * cellSize);})
+           //.attr('y', function(d){  return (d.state_order * state_order_size[d.State]*cellSize) +  (d.Position * cellSize);})  // get the max of previous state
+           .attr('y', function(d){
+             
+              state_settings = _.find(state_nums, function(sn){ return sn.Name == d.State; });
+              y_offset = state_settings.offset * cellSize;
+
+              return y_offset + (d.Position * cellSize);
+
+           })
            .attr('class', function(d){ return d.Gender;})
 
 
@@ -116,7 +150,7 @@
           function mouseover(d) {
             tooltip.style("visibility", "visible");
             
-            ttext = [d.Position, '. ', d.Name, ' ', '(',d.Party,')'].join('');
+            ttext = [d.Position, '. ', d.Name, ' ', '(',d.Party,')', d.state_order,'|',d.party_order,d.State].join('|');
 
             tooltip.transition()        
                         .duration(200)      
@@ -131,11 +165,7 @@
                     .style("opacity", 0); 
             var $tooltip = $("#tooltip");
             $tooltip.empty();
-          }
-
-
-
-   
+          }  
 
           $("#loading").hide();
     }
