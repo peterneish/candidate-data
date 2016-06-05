@@ -14,6 +14,8 @@
   <body>
     <h1>Gender of Candidates in Australian Federal Election 2016</h1>
 
+
+
     <script id="cat-template" type="text/underscore-template">
       <div class="party">
         <h2><%= Name %></h2>
@@ -47,8 +49,11 @@
     var public_spreadsheet_url = "https://docs.google.com/spreadsheets/d/1JvBRkeXyamjWkKLjhcS720tBmGuT23CL-KZdGCkGKmk/pubhtml";
 
     var width = 960,
-        height = 750,
+        height = 250, // of each state
+        margin = 30,  // between states
         cellSize = 25; // cell size
+
+    var state_order_size = ['NSW', 'QLD', 'SA', 'TAS', 'VIC', 'WA', 'ACT', 'NT']; // so we can put the territories last    
 
 
     $(document).ready( function() {
@@ -60,36 +65,79 @@
 
     function draw(data) {
 
-        //var states = _.groupByMulti(data,['State','Party']);
+        
         states = _.groupBy(data,'State');
-        stateSorted = _.sortBy(data, function(s){ return s.State;});
+        state_keys = _.keys(states);
+        states_sorted = _.sortBy(data, function(s){ return [s.State,s.Party].join('|') ;});
+        parties_sorted = _.sortBy(data, function(s){ return [s.Party,s.State].join('|') ;});
+
         parties = _.groupBy(data,'Party');
-
-        var numstates = _.size(states);
-
+        party_keys = _.keys(parties);
 
 
-        var svg = d3.select("#chart").selectAll("svg")
-        .enter().append("svg")
+        // add order position to the data in order to position the cells correctly
+        _.map(states_sorted, function(s){  s['party_order'] = party_keys.indexOf(s.Party); return s;});
+        _.map(states_sorted, function(s){  s['state_order'] = state_keys.indexOf(s.State); return s;});
+
+
+        var num_states = _.size(states);
+        var num_parties = _.size(parties);
+
+
+        var svg = d3.select("#chart")
+        .append("svg")
           .attr("width", width)
-          .attr("height", height)
+          .attr("height", (height * num_states) + (num_states * margin))
           .attr("class", "RdYlGn")
-        .append("g")
+        .append("g");
 
-         var rect = svg.selectAll(".cell")
-             .data(statesSorted)
-             .enter().append("rect")
-             .attr("class", "state")
-             .attr("height", cellSize)
-             .attr("width", cellSize)
-             .text(function(d){ return d.Gender});
+        var rect = svg.selectAll("rect")
+           .data(states_sorted)
+           .enter()
+           .append("rect")
+           .attr("width", cellSize)
+           .attr("height", cellSize)
+           .attr('x', function(d){ return d.party_order * cellSize;})
+           .attr('y', function(d){ return (d.state_order * height) +  (d.Position * cellSize);})
+           .attr('class', function(d){ return d.Gender;})
 
 
-        d3.select("#content").selectAll("div")
-             .data(states.NSW)
-             .enter().append("div").text(function(d){return d.Gender; });
+        //  Tooltip Object
+        var tooltip = d3.select("body")
+          .append("div").attr("id", "tooltip")
+          .style("position", "absolute")
+          .style("z-index", "10")
+          .style("visibility", "hidden")
+          .text("a simple tooltip");
 
-        $("#loading").hide();
+          //  Tooltip
+          rect.on("mouseover", mouseover);
+          rect.on("mouseout", mouseout);
+          function mouseover(d) {
+            tooltip.style("visibility", "visible");
+            
+            ttext = [d.Position, '. ', d.Name, ' ', '(',d.Party,')'].join('');
+
+            tooltip.transition()        
+                        .duration(200)      
+                        .style("opacity", .9);      
+            tooltip.html(ttext)  
+                        .style("left", (d3.event.pageX)+30 + "px")     
+                        .style("top", (d3.event.pageY) + "px"); 
+          }
+          function mouseout (d) {
+            tooltip.transition()        
+                    .duration(500)      
+                    .style("opacity", 0); 
+            var $tooltip = $("#tooltip");
+            $tooltip.empty();
+          }
+
+
+
+   
+
+          $("#loading").hide();
     }
 
 
